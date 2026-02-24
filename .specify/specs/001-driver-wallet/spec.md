@@ -2,6 +2,7 @@
 
 **Feature Branch**: `001-driver-wallet`
 **Created**: 2026-02-24
+**Updated**: 2026-02-25
 **Status**: Draft
 **Input**: User description: "Aplikasi pencatat keuangan offline untuk pengemudi ojek daring di Jakarta. Fitur utama: pencatatan transaksi cepat (<3 detik), dasbor harian, dan manajemen hutang/cicilan."
 
@@ -80,9 +81,9 @@ Sebagai pengemudi ojol, saya ingin **transaksi dikelompokkan per kategori** (Gra
 
 ---
 
-### User Story 5 — Manajemen Hutang/Piutang (Priority: P2)
+### User Story 5 — Manajemen Hutang/Piutang Personal (Priority: P2)
 
-Sebagai pengemudi ojol, saya ingin **mencatat hutang dan piutang** (siapa yang saya hutangi, berapa, dan kapan jatuh tempo), agar saya tidak lupa membayar atau menagih.
+Sebagai pengemudi ojol, saya ingin **mencatat hutang dan piutang personal** (siapa yang saya hutangi, berapa, dan kapan jatuh tempo), agar saya tidak lupa membayar atau menagih.
 
 **Why this priority**: Banyak pengemudi pinjam-meminjam uang antar sesama pengemudi. Fitur ini mencegah konflik dan lupa bayar.
 
@@ -129,6 +130,27 @@ Sebagai pengemudi ojol, saya ingin **mengedit transaksi yang sudah tercatat** ji
 
 ---
 
+### User Story 8 — Cicilan Tetap Bulanan (Priority: P2)
+
+Sebagai pengemudi ojol, saya ingin **mencatat cicilan tetap bulanan** (pinjol, cicilan motor, HP, elektronik) dengan jadwal dan pengingat otomatis, agar saya tidak telat bayar dan kena denda.
+
+Banyak pengemudi memiliki cicilan tetap bulanan (Kredivo, SPayLater, Akulaku, cicilan motor, cicilan HP). Berbeda dari hutang personal (US5), cicilan tetap memiliki nominal tetap per bulan, jadwal berulang, dan konsekuensi denda jika telat.
+
+**Why this priority**: Cicilan tetap adalah beban finansial terbesar banyak pengemudi ojol. Telat bayar 1 hari saja bisa kena denda yang signifikan. Fitur ini terpisah dari US5 karena memiliki data model dan alur yang berbeda.
+
+**Independent Test**: Catat cicilan Kredivo 12 bulan, bayar 1 cicilan, verifikasi sisa berkurang, jumlah cicilan terbayar bertambah, dan jadwal berikutnya tampil benar.
+
+**Acceptance Scenarios**:
+
+1. **Given** user membuka tab "Hutang" dan mengetuk "+", **When** memilih mode "Cicilan Tetap", **Then** form muncul dengan field: Jenis cicilan (Pinjol/Motor/HP/Elektronik/Lainnya), Nama platform/dealer, Total hutang, Cicilan per bulan, Tanggal jatuh tempo bulanan (1-31), Jumlah total cicilan, Sudah dibayar berapa kali, Pengaturan denda (opsional), Catatan.
+2. **Given** ada cicilan Kredivo Rp 3.000.000 (12x Rp 250.000, jatuh tempo tgl 15, sudah bayar 3x), **When** user membayar cicilan ke-4, **Then** paid_installments menjadi 4, remaining menjadi Rp 2.000.000, dan cicilan berikutnya (ke-5) ditampilkan dengan tanggal 15 bulan depan.
+3. **Given** cicilan jatuh tempo 3 hari lagi, **When** DebtReminderWorker berjalan pukul 08:00 WIB, **Then** notifikasi muncul: "Cicilan [Nama] Rp [nominal] jatuh tempo 3 hari lagi (tgl [X])".
+4. **Given** cicilan sudah lewat jatuh tempo dan belum dibayar bulan ini, **When** user membuka detail cicilan, **Then** denda dihitung otomatis sesuai pengaturan: Flat (nominal tetap), Persentase per bulan (% × cicilan), atau Persentase per hari (% × cicilan × jumlah hari telat).
+5. **Given** semua cicilan sudah dibayar (paid_installments = total_installments), **When** user melihat daftar hutang, **Then** item ditandai "LUNAS" dengan badge hijau dan remaining_amount = 0.
+6. **Given** user membuka detail cicilan, **When** melihat riwayat pembayaran, **Then** semua pembayaran sebelumnya tampil dengan nomor cicilan, tanggal, dan nominal.
+
+---
+
 ### Edge Cases
 
 - **Nominal sangat besar**: Apa yang terjadi jika user memasukkan nominal > 999.999.999? → Sistem harus membatasi dan menampilkan error.
@@ -137,6 +159,8 @@ Sebagai pengemudi ojol, saya ingin **mengedit transaksi yang sudah tercatat** ji
 - **Reinstall aplikasi**: Data hilang jika user reinstall? → Ya, karena offline-only. (Backup/export bisa jadi fitur masa depan.)
 - **Mata uang**: Selalu Rupiah (Rp), tidak perlu multi-currency.
 - **Multiple user**: Tidak ada. Satu device = satu pengemudi.
+- **Tanggal jatuh tempo cicilan 31**: Jika bulan hanya punya 28-30 hari, gunakan hari terakhir bulan tersebut (e.g., tgl 31 di Februari → tgl 28/29).
+- **Denda persentase harian akumulasi**: Denda dihitung dari jumlah hari kalender sejak jatuh tempo, bukan hari kerja.
 
 ---
 
@@ -149,19 +173,23 @@ Sebagai pengemudi ojol, saya ingin **mengedit transaksi yang sudah tercatat** ji
 - **FR-003**: Sistem HARUS menampilkan daftar transaksi hari ini, diurutkan dari yang terbaru.
 - **FR-004**: Sistem HARUS menyediakan minimal 9 kategori default (Grab, Gojek, Maxim, Shopee Food, Bensin, Makan, Servis Kendaraan, Parkir, Lainnya).
 - **FR-005**: Sistem HARUS mendukung CRUD (Create, Read, Update, Delete) untuk transaksi.
-- **FR-006**: Sistem HARUS mendukung pencatatan hutang/piutang dengan field: nama orang, nominal, tipe (hutang/piutang), tanggal jatuh tempo (opsional), catatan.
-- **FR-007**: Sistem HARUS mendukung pembayaran cicilan hutang dan menghitung sisa otomatis.
+- **FR-006**: Sistem HARUS mendukung pencatatan hutang/piutang personal dengan field: nama orang, nominal, tipe (hutang/piutang), tanggal jatuh tempo (opsional), catatan.
+- **FR-007**: Sistem HARUS mendukung pembayaran cicilan hutang personal dan menghitung sisa otomatis.
 - **FR-008**: Sistem HARUS menampilkan ringkasan mingguan dan bulanan dengan grafik batang.
 - **FR-009**: Sistem HARUS beroperasi sepenuhnya offline tanpa koneksi internet.
 - **FR-010**: Sistem HARUS memformat semua angka sebagai mata uang Rupiah (Rp) dengan pemisah ribuan titik.
 - **FR-011**: Sistem HARUS menampilkan notifikasi lokal untuk hutang yang jatuh tempo.
 - **FR-012**: User HARUS bisa menambahkan kategori baru (custom category).
+- **FR-013**: Sistem HARUS mendukung pencatatan cicilan tetap bulanan dengan field: jenis cicilan (Pinjol/Motor/HP/Elektronik/Lainnya), nama platform/dealer, total hutang, cicilan per bulan, tanggal jatuh tempo bulanan (1-31), jumlah total cicilan, sudah dibayar berapa kali, catatan.
+- **FR-014**: Sistem HARUS mendukung 3 tipe denda keterlambatan cicilan: flat (nominal tetap), persentase per bulan, dan persentase per hari.
+- **FR-015**: Sistem HARUS menghitung denda keterlambatan secara otomatis berdasarkan tipe denda dan jumlah hari/bulan keterlambatan.
+- **FR-016**: Sistem HARUS menampilkan notifikasi pengingat cicilan 3 hari sebelum jatuh tempo (early reminder) dan pada hari jatuh tempo.
 
 ### Key Entities
 
 - **Transaction**: Representasi satu transaksi keuangan. Atribut: id, nominal, tipe (income/expense), kategori, catatan, timestamp. Relasi: belongs to Category.
 - **Category**: Kelompok transaksi. Atribut: id, nama, ikon, tipe (income/expense/both), isDefault. Bisa dibuat custom oleh user.
-- **Debt**: Representasi satu hutang atau piutang. Atribut: id, nama orang, nominal total, sisa, tipe (hutang/piutang), tanggal jatuh tempo, status (active/paid), catatan.
+- **Debt**: Representasi satu hutang, piutang, atau cicilan tetap. Atribut: id, nama orang/platform, nominal total, sisa, tipe (hutang/piutang), jenis (personal/installment), kategori cicilan (pinjol/motor/hp/elektronik/lainnya), cicilan per bulan, tanggal jatuh tempo, jumlah total cicilan, sudah bayar berapa kali, tipe denda, besar denda, status (active/paid), catatan.
 - **DebtPayment**: Representasi satu pembayaran cicilan. Atribut: id, debt_id, nominal, timestamp, catatan. Relasi: belongs to Debt.
 
 ---
@@ -175,4 +203,5 @@ Sebagai pengemudi ojol, saya ingin **mengedit transaksi yang sudah tercatat** ji
 - **SC-003**: Aplikasi berjalan sempurna **tanpa internet** — tidak ada crash, error, atau fitur yang hilang saat offline.
 - **SC-004**: Waktu startup aplikasi (cold start) **kurang dari 2 detik** pada perangkat mid-range.
 - **SC-005**: Semua operasi database (insert, update, delete) selesai dalam **kurang dari 500ms**.
-- **SC-006**: Hutang/piutang yang sudah lunas ditandai otomatis dan riwayat cicilan tersimpan lengkap.
+- **SC-006**: Hutang/piutang personal yang sudah lunas ditandai otomatis dan riwayat cicilan tersimpan lengkap.
+- **SC-007**: Cicilan tetap menampilkan jadwal berikutnya secara akurat, paid/total ter-update setelah pembayaran, dan denda keterlambatan dihitung otomatis sesuai konfigurasi (flat/% bulanan/% harian).
