@@ -6,7 +6,7 @@
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]**: Can run in parallel (different files, no dependencies)
-- **[Story]**: Which user story (US1–US7)
+- **[Story]**: Which user story (US1–US8)
 - Paths relative to `app/src/main/java/com/driverwallet/`
 
 ---
@@ -142,9 +142,9 @@
 
 ---
 
-## Phase 5: User Story 5 — Manajemen Hutang/Piutang (Priority: P2)
+## Phase 5: User Story 5 — Manajemen Hutang/Piutang Personal (Priority: P2)
 
-**Goal**: User bisa mencatat hutang/piutang, bayar cicilan, lihat sisa, dan dapat reminder
+**Goal**: User bisa mencatat hutang/piutang personal, bayar cicilan, lihat sisa, dan dapat reminder
 
 **Independent Test**: Buka tab Hutang → tap "+" → isi form → simpan → bayar cicilan Rp 200.000 → sisa berkurang → tandai lunas jika sisa = 0
 
@@ -186,7 +186,78 @@
 - [ ] T083 [P] [US5] Unit test `DebtListViewModelTest.kt` — test active/paid filtering
 - [ ] T084 Instrumented test `DebtDaoTest.kt` — test insert, payment update, remaining calculation
 
-**Checkpoint**: Hutang/piutang fully functional with cicilan and notification ✅
+**Checkpoint**: Hutang/piutang personal fully functional with cicilan and notification ✅
+
+---
+
+## Phase 5B: User Story 8 — Cicilan Tetap Bulanan (Priority: P2) → Issue #12
+
+**Purpose**: Cicilan tetap bulanan (pinjol, motor, HP, elektronik) dengan denda dan notifikasi otomatis
+
+**⚠️ DEPENDS ON**: Phase 5 MUST be complete (shares DebtCard, DebtListScreen, DebtReminderWorker)
+
+**Goal**: User bisa mencatat cicilan tetap bulanan, bayar cicilan dengan nominal tetap, lihat denda otomatis, dan dapat reminder H-3 + hari-H
+
+**Independent Test**: Buka tab Hutang → tap "+" → pilih "Cicilan Tetap" → isi form Kredivo 12x Rp 250.000 tgl 15 → simpan → bayar 1 cicilan → paid 1/12, remaining berkurang → cek notifikasi H-3
+
+### Data Layer — Database Migration & Entity
+
+- [ ] T111 [US8] Create `Migration_1_2.kt` in `core/database/` — 8x ALTER TABLE ADD COLUMN + 2x CREATE INDEX per data-model.md v2
+- [ ] T112 [P] [US8] Update `DebtEntity.kt` in `feature/debt/data/local/` — add 8 new fields with @ColumnInfo annotations, all NULLABLE except debt_kind (DEFAULT 'PERSONAL')
+- [ ] T113 [US8] Update `DebtDao.kt` in `feature/debt/data/local/` — add installment queries: getActiveInstallments(), getInstallmentsDueOnDay(), getInstallmentsDueSoon(), payInstallment(), getAllDebts(kindFilter, statusFilter)
+- [ ] T114 [US8] Update `AppDatabase.kt` in `core/database/` — version 1 → 2, add Migration_1_2 to .addMigrations(). ⚠️ fallbackToDestructiveMigration() TETAP DILARANG
+
+### Domain Layer — Models
+
+- [ ] T115 [P] [US8] Update `Debt.kt` in `feature/debt/domain/model/` — add fields: kind (DebtKind), category (DebtCategory?), monthlyAmount, installmentDay, totalInstallments, paidInstallments, penalty (Penalty?). Add enums DebtKind { PERSONAL, INSTALLMENT }, DebtCategory { PINJOL, MOTOR, HP, ELEKTRONIK, LAINNYA }. Add computed: currentInstallmentNumber, isInstallment, isOverdue
+- [ ] T116 [P] [US8] Create `Penalty.kt` in `feature/debt/domain/model/` — data class Penalty(type: PenaltyType, amount: Long). Enum PenaltyType { FLAT, PERCENT_MONTHLY, PERCENT_DAILY }
+
+### Domain Layer — Use Cases
+
+- [ ] T117 [P] [US8] Create `AddInstallmentDebtUseCase.kt` in `feature/debt/domain/usecase/` — validates: personName not empty, totalAmount > 0, monthlyAmount > 0, totalInstallments > 0, installmentDay 1–31, paidInstallments ≤ totalInstallments. Calculates remaining = totalAmount - (paidInstallments × monthlyAmount). Sets debt_kind = INSTALLMENT
+- [ ] T118 [P] [US8] Create `PayInstallmentUseCase.kt` in `feature/debt/domain/usecase/` — validates debt is INSTALLMENT and ACTIVE. Payment = monthlyAmount (fixed). Increments paid_installments, decreases remaining. If paid ≥ total → status PAID. Inserts debt_payment record
+- [ ] T119 [P] [US8] Create `CalculatePenaltyUseCase.kt` in `feature/debt/domain/usecase/` — calculates penalty: FLAT = penalty_amount langsung, PERCENT_MONTHLY = (amount/100) × monthly × bulanTelat, PERCENT_DAILY = (amount/100) × monthly × hariTelat. Returns 0 if not overdue. Uses java.time API. Handles tgl 31 di bulan pendek
+- [ ] T120 [P] [US8] Create `GetInstallmentDetailUseCase.kt` in `feature/debt/domain/usecase/` — returns Debt + List<DebtPayment> + computed penalty. Combines DebtRepository + CalculatePenaltyUseCase
+
+### Presentation — Installment Form Screen
+
+- [ ] T121 [US8] Create `InstallmentFormState.kt` in `feature/debt/presentation/installment/` — data class: category, personName, totalAmount, monthlyAmount, installmentDay (default 15), totalInstallments, paidInstallments, penaltyType, penaltyAmount, note, isLoading, error
+- [ ] T122 [P] [US8] Create `InstallmentFormEvent.kt` in `feature/debt/presentation/installment/` — sealed interface: SelectCategory, SetPersonName, SetTotalAmount, SetMonthlyAmount, SetInstallmentDay, SetTotalInstallments, SetPaidInstallments, SetPenaltyType, SetPenaltyAmount, SetNote, Save
+- [ ] T123 [P] [US8] Create `InstallmentFormEffect.kt` in `feature/debt/presentation/installment/` — sealed interface: NavigateBack, ShowError(message), ShowSuccess(message)
+- [ ] T124 [US8] Create `InstallmentCategorySelector.kt` in `feature/debt/presentation/components/` — FilterChip row: 🏍 Motor | 📱 HP | 💳 Pinjol | 🖥 Elektronik | ⋯ Lainnya. Selected uses MaterialTheme.colorScheme.primary
+- [ ] T125 [US8] Create `InstallmentFormViewModel.kt` in `feature/debt/presentation/installment/` — @HiltViewModel, validates via AddInstallmentDebtUseCase, handles Save → validate → save → emit NavigateBack
+- [ ] T126 [US8] Create `InstallmentFormScreen.kt` in `feature/debt/presentation/installment/` — Layout: category selector → nama → total → cicilan/bulan → tanggal + jumlah cicilan (row) → sudah dibayar + progress → denda section (opsional) → catatan → Simpan. Numeric keyboard for monetary inputs. Progress bar = (paid/total) × 100
+
+### Presentation — Installment Detail Screen
+
+- [ ] T127 [US8] Create `InstallmentDetailScreen.kt` in `feature/debt/presentation/installment/` — Info card: category badge, total, cicilan/bulan, sisa, progress, cicilan ke-X/Y, tanggal berikutnya (computed), denda (if overdue), catatan. Riwayat: LazyColumn PaymentHistoryItem (reuse). Button: "💰 Bayar Cicilan Rp [monthlyAmount]" (pre-filled, fixed). Overdue warning banner with penalty amount
+- [ ] T128 [US8] Create `InstallmentDetailViewModel.kt` in `feature/debt/presentation/installment/` — loads via GetInstallmentDetailUseCase. Handles PayInstallment via PayInstallmentUseCase. MVI: InstallmentDetailState, InstallmentDetailEvent, InstallmentDetailEffect
+
+### Presentation — List Integration (Update Phase 5 Components)
+
+- [ ] T129 [P] [US8] Update `DebtCard.kt` in `feature/debt/presentation/components/` — if debt.isInstallment: show category icon + badge, "Cicilan X/Y", installment_day, penalty warning. if debt.isPersonal: keep existing layout. Use when(debt.kind) to switch
+- [ ] T130 [P] [US8] Update `DebtListViewModel.kt` in `feature/debt/presentation/list/` — add debt_kind filter: Semua | Personal | Cicilan. Update LoadDebts to pass kindFilter
+- [ ] T131 [US8] Update `DebtListScreen.kt` in `feature/debt/presentation/list/` — add kind filter chips row: Semua | 👤 Personal | 📋 Cicilan. Keep existing status filter. FAB "+" → bottom sheet: "Hutang Personal" vs "Cicilan Tetap"
+
+### Notification Enhancement
+
+- [ ] T132 [US8] Update `DebtReminderWorker.kt` in `core/notification/` — keep existing personal due_date logic. Add: getInstallmentsDueSoon() for H-3/H-2/H-1 early reminders. Add: getInstallmentsDueOnDay() for hari-H. Format: "Cicilan [Nama] Rp [X] jatuh tempo [N hari lagi / hari ini]". Overdue: "⚠️ Cicilan [Nama] TERLAMBAT! Denda: Rp [amount]". Separate channel: "Pengingat Cicilan"
+
+### Navigation
+
+- [ ] T133 [US8] Update `AppNavigation.kt` in `core/navigation/` — add routes: InstallmentForm, InstallmentDetail(debtId: Long). Wire: DebtListScreen FAB → InstallmentFormScreen. Wire: DebtCard (installment) tap → InstallmentDetailScreen
+
+### Tests
+
+- [ ] T134 [P] [US8] Unit test `AddInstallmentDebtUseCaseTest.kt` — empty name → error, monthlyAmount 0 → error, installmentDay 0/32 → error, paidInstallments > total → error, valid → remaining calculated correctly (e.g., paid=3, total=12, monthly=250000 → remaining=2.250.000)
+- [ ] T135 [P] [US8] Unit test `PayInstallmentUseCaseTest.kt` — pay PERSONAL → error, pay PAID → error, pay → paid increments + remaining decreases, pay last (paid=total-1) → status PAID, payment record created
+- [ ] T136 [P] [US8] Unit test `CalculatePenaltyUseCaseTest.kt` — not overdue → 0, FLAT 3 hari → flat amount, PERCENT_DAILY 0.5% 3 hari 250000 → 3750, PERCENT_MONTHLY 5% 1 bulan 250000 → 12500, no penalty config → 0, tgl 31 Februari → last day of month
+- [ ] T137 [P] [US8] Unit test `InstallmentFormViewModelTest.kt` — Save empty name → error, Save valid → NavigateBack, SelectCategory → state updates, progress computed correctly
+- [ ] T138 [P] [US8] Unit test `InstallmentDetailViewModelTest.kt` — loads debt+payments+penalty on init, PayInstallment → state updates, overdue → penalty displayed
+- [ ] T139 [US8] Instrumented test `DebtDaoInstallmentTest.kt` — insert installment → getActiveInstallments returns it, payInstallment → paid+1 + remaining decreases, pay all → PAID, getInstallmentsDueOnDay(15) → correct, getInstallmentsDueSoon → H-3
+- [ ] T140 [US8] Instrumented test `Migration_1_2_Test.kt` — v1→v2 succeeds, existing personal debts have debt_kind='PERSONAL', new columns NULLABLE/default, new indexes exist. Use MigrationTestHelper
+
+**Checkpoint**: Cicilan tetap fully functional — form, payment, penalty, notification, list integration, migration safe ✅
 
 ---
 
@@ -248,7 +319,7 @@
 - [ ] T106 [P] Add input validation: max amount 999.999.999 in `TransactionFormViewModel.kt` (edge case)
 - [ ] T107 [P] Add empty state illustrations for Dashboard, Debt List, History
 - [ ] T108 [P] Add loading shimmer/skeleton for all screens
-- [ ] T109 Run full app smoke test: complete all acceptance scenarios from spec.md
+- [ ] T109 Run full app smoke test: complete all acceptance scenarios from spec.md (US1–US8)
 - [ ] T110 Run quickstart validation: cold start < 2s, transaction save < 500ms
 
 **Checkpoint**: Production-ready app ✅
@@ -265,6 +336,7 @@ Phase 2 (Foundation)      → depends on Phase 1 — BLOCKS all user stories
 Phase 3 (US1+US2+US3 P1)  → depends on Phase 2
 Phase 4 (US4 P2)          → depends on Phase 3 (uses CategorySelector from Phase 3)
 Phase 5 (US5 P2)          → depends on Phase 2 only (independent from transactions)
+Phase 5B (US8 P2)         → depends on Phase 5 (shares DebtCard, DebtListScreen, DebtReminderWorker)
 Phase 6 (US6 P3)          → depends on Phase 3 (needs transaction data)
 Phase 7 (US7 P3)          → depends on Phase 3 (extends transaction feature)
 Phase 8 (Polish)          → depends on all phases complete
@@ -273,7 +345,7 @@ Phase 8 (Polish)          → depends on all phases complete
 ### Parallel Opportunities
 
 - **Phase 4 + Phase 5** can run in parallel (different features, no file conflicts)
-- **Phase 6 + Phase 7** can run in parallel (different screens, no file conflicts)
+- **Phase 5B + Phase 6 + Phase 7** can run in parallel (5B modifies debt files, 6+7 modify transaction/history files — no file conflicts)
 - Within each phase, all tasks marked `[P]` can run in parallel
 
 ### Implementation Strategy (Recommended for AI Agent)
@@ -283,9 +355,9 @@ Phase 1 → Phase 2 → Phase 3 (MVP ✅)
                          ↓
                Phase 4 + Phase 5 (parallel)
                          ↓
-               Phase 6 + Phase 7 (parallel)
+            Phase 5B + Phase 6 + Phase 7 (parallel)
                          ↓
                      Phase 8 (polish)
 ```
 
-Total: **110 tasks** across **8 phases**
+Total: **140 tasks** across **9 phases** (including Phase 5B)
