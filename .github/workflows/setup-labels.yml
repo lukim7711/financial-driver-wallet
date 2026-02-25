@@ -1,0 +1,104 @@
+name: "🏷️ Setup Repository Labels"
+
+# Trigger manual dari Actions tab
+on:
+  workflow_dispatch:
+
+jobs:
+  create-labels:
+    name: Create Custom Labels
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Create Priority Labels
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          echo "=== Creating Priority Labels ==="
+          gh label create "priority: blocking" --color "b60205" --description "Must complete before all other phases" --repo "$REPO" --force
+          gh label create "priority: P1"       --color "0e8a16" --description "MVP Core — harus ada di versi pertama" --repo "$REPO" --force
+          gh label create "priority: P2"       --color "fbca04" --description "Important but not MVP" --repo "$REPO" --force
+          gh label create "priority: P3"       --color "e4e669" --description "Nice to have, bisa ditunda" --repo "$REPO" --force
+
+      - name: Create Layer Labels
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          echo "=== Creating Layer Labels ==="
+          gh label create "layer: data"         --color "0075ca" --description "Room, Entity, DAO, Migration, Repository Impl" --repo "$REPO" --force
+          gh label create "layer: domain"       --color "6f42c1" --description "Use Cases, Repository interfaces, Domain Models" --repo "$REPO" --force
+          gh label create "layer: presentation" --color "d876e3" --description "Screen, ViewModel, Composable, UI Components" --repo "$REPO" --force
+          gh label create "layer: core"         --color "c5def5" --description "Utilities, Theme, Navigation, DI Modules" --repo "$REPO" --force
+
+      - name: Create Type Labels
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          echo "=== Creating Type Labels ==="
+          gh label create "type: testing"  --color "1d76db" --description "Unit test, instrumented test, smoke test" --repo "$REPO" --force
+          gh label create "type: infra"    --color "bfdadc" --description "Gradle, CI/CD, project config, workflows" --repo "$REPO" --force
+
+      - name: Create Status Labels
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          echo "=== Creating Status Labels ==="
+          gh label create "status: blocked" --color "b60205" --description "Menunggu issue lain selesai" --repo "$REPO" --force
+
+      - name: Ensure Default Labels Exist
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          echo "=== Ensuring Default Labels ==="
+          gh label create "good first issue" --color "7057ff" --description "Cocok untuk kontributor baru" --repo "$REPO" --force
+
+      - name: Assign Labels to Existing Issues
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          echo "=== Assigning Labels to Issues ==="
+
+          # Issue #1 — Project Setup
+          gh issue edit 1 --add-label "priority: blocking,type: infra" --repo "$REPO"
+
+          # Issue #2 — Room Database, Entities, DAOs
+          gh issue edit 2 --add-label "priority: blocking,layer: data,layer: core" --repo "$REPO"
+
+          # Issue #3 — Domain Models, Theme, Utils
+          gh issue edit 3 --add-label "priority: blocking,layer: domain,layer: core" --repo "$REPO"
+
+          # Issue #4 — Repository & Use Cases
+          gh issue edit 4 --add-label "priority: P1,layer: data,layer: domain" --repo "$REPO"
+
+          # Issue #5 — Dashboard + Transaction Form UI
+          gh issue edit 5 --add-label "priority: P1,layer: presentation" --repo "$REPO"
+
+          # Issue #6 — Unit & Instrumented Tests
+          gh issue edit 6 --add-label "priority: P1,type: testing" --repo "$REPO"
+
+          # Issue #7 — Custom Categories
+          gh issue edit 7 --add-label "priority: P2,layer: domain,layer: presentation" --repo "$REPO"
+
+          # Issue #8 — Debt Management
+          gh issue edit 8 --add-label "priority: P2,layer: data,layer: domain,layer: presentation" --repo "$REPO"
+
+          # Issue #9 — History & Charts
+          gh issue edit 9 --add-label "priority: P3,layer: presentation" --repo "$REPO"
+
+          # Issue #10 — Edit Transaction
+          gh issue edit 10 --add-label "priority: P3,layer: domain,layer: presentation" --repo "$REPO"
+
+          # Issue #11 — Polish & Smoke Test
+          gh issue edit 11 --add-label "priority: P1,type: testing,layer: presentation" --repo "$REPO"
+
+          # Issue #12 — Cicilan Tetap
+          gh issue edit 12 --add-label "priority: P2,layer: data,layer: domain,layer: presentation" --repo "$REPO"
+
+          echo "=== All labels assigned successfully! ==="
