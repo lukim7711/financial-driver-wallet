@@ -1,0 +1,115 @@
+name: "🏁 Setup Milestones"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  create-milestones:
+    name: Create Milestones & Assign Issues
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Create Milestones
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          echo "=== Creating Milestones ==="
+
+          # Milestone 1: v0.1 — Project Foundation
+          gh api repos/$REPO/milestones \
+            --method POST \
+            -f title="v0.1 — Project Foundation" \
+            -f description="Phase 1-2: Project setup, Room database, entities, DAOs, Hilt modules, domain models, theme, dan core utilities. Fondasi yang harus selesai sebelum semua fitur." \
+            -f state="open" || echo "Milestone may already exist, continuing..."
+
+          # Milestone 2: v0.2 — MVP Core Features
+          gh api repos/$REPO/milestones \
+            --method POST \
+            -f title="v0.2 — MVP Core Features" \
+            -f description="Phase 3: Repository implementations, use cases, dashboard screen, transaction form UI, dan unit/instrumented tests. Versi pertama yang bisa digunakan pengemudi." \
+            -f state="open" || echo "Milestone may already exist, continuing..."
+
+          # Milestone 3: v0.3 — Feature Complete
+          gh api repos/$REPO/milestones \
+            --method POST \
+            -f title="v0.3 — Feature Complete" \
+            -f description="Phase 4-5: Custom categories, debt management (hutang/piutang personal), cicilan tetap bulanan dengan denda dan notifikasi." \
+            -f state="open" || echo "Milestone may already exist, continuing..."
+
+          # Milestone 4: v0.4 — History & Edit
+          gh api repos/$REPO/milestones \
+            --method POST \
+            -f title="v0.4 — History & Edit" \
+            -f description="Phase 6-7: Riwayat mingguan/bulanan dengan grafik Vico, dan fitur edit transaksi existing." \
+            -f state="open" || echo "Milestone may already exist, continuing..."
+
+          # Milestone 5: v1.0 — Production Ready
+          gh api repos/$REPO/milestones \
+            --method POST \
+            -f title="v1.0 — Production Ready" \
+            -f description="Phase 8: Final polish, bottom navigation, edge cases, empty states, loading shimmer, dan full smoke test. Aplikasi siap digunakan." \
+            -f state="open" || echo "Milestone may already exist, continuing..."
+
+      - name: Get Milestone Numbers
+        id: milestones
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          echo "=== Fetching Milestone Numbers ==="
+          
+          MS_LIST=$(gh api repos/$REPO/milestones --jq '.[] | "\(.number) \(.title)"')
+          echo "$MS_LIST"
+          
+          M1=$(gh api repos/$REPO/milestones --jq '.[] | select(.title | startswith("v0.1")) | .number')
+          M2=$(gh api repos/$REPO/milestones --jq '.[] | select(.title | startswith("v0.2")) | .number')
+          M3=$(gh api repos/$REPO/milestones --jq '.[] | select(.title | startswith("v0.3")) | .number')
+          M4=$(gh api repos/$REPO/milestones --jq '.[] | select(.title | startswith("v0.4")) | .number')
+          M5=$(gh api repos/$REPO/milestones --jq '.[] | select(.title | startswith("v1.0")) | .number')
+          
+          echo "m1=$M1" >> $GITHUB_OUTPUT
+          echo "m2=$M2" >> $GITHUB_OUTPUT
+          echo "m3=$M3" >> $GITHUB_OUTPUT
+          echo "m4=$M4" >> $GITHUB_OUTPUT
+          echo "m5=$M5" >> $GITHUB_OUTPUT
+          
+          echo "Milestone numbers: v0.1=#$M1, v0.2=#$M2, v0.3=#$M3, v0.4=#$M4, v1.0=#$M5"
+
+      - name: Assign Issues to Milestones
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          M1: ${{ steps.milestones.outputs.m1 }}
+          M2: ${{ steps.milestones.outputs.m2 }}
+          M3: ${{ steps.milestones.outputs.m3 }}
+          M4: ${{ steps.milestones.outputs.m4 }}
+          M5: ${{ steps.milestones.outputs.m5 }}
+        run: |
+          echo "=== Assigning Issues to Milestones ==="
+
+          # v0.1 — Project Foundation: Issues #1, #2, #3
+          gh issue edit 1 --milestone "v0.1 — Project Foundation" --repo "$REPO"
+          gh issue edit 2 --milestone "v0.1 — Project Foundation" --repo "$REPO"
+          gh issue edit 3 --milestone "v0.1 — Project Foundation" --repo "$REPO"
+
+          # v0.2 — MVP Core Features: Issues #4, #5, #6
+          gh issue edit 4 --milestone "v0.2 — MVP Core Features" --repo "$REPO"
+          gh issue edit 5 --milestone "v0.2 — MVP Core Features" --repo "$REPO"
+          gh issue edit 6 --milestone "v0.2 — MVP Core Features" --repo "$REPO"
+
+          # v0.3 — Feature Complete: Issues #7, #8, #12
+          gh issue edit 7 --milestone "v0.3 — Feature Complete" --repo "$REPO"
+          gh issue edit 8 --milestone "v0.3 — Feature Complete" --repo "$REPO"
+          gh issue edit 12 --milestone "v0.3 — Feature Complete" --repo "$REPO"
+
+          # v0.4 — History & Edit: Issues #9, #10
+          gh issue edit 9 --milestone "v0.4 — History & Edit" --repo "$REPO"
+          gh issue edit 10 --milestone "v0.4 — History & Edit" --repo "$REPO"
+
+          # v1.0 — Production Ready: Issues #11, #13
+          gh issue edit 11 --milestone "v1.0 — Production Ready" --repo "$REPO"
+          gh issue edit 13 --milestone "v1.0 — Production Ready" --repo "$REPO"
+
+          echo "=== All issues assigned to milestones! ==="
