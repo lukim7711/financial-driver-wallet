@@ -1,0 +1,79 @@
+name: "🐛 Bug Report"
+description: "Laporan bug yang ditemukan saat development atau testing"
+labels: ["bug"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: "Deskripsi Bug"
+      description: "Jelaskan bug yang terjadi secara singkat dan jelas"
+      placeholder: "Apa yang terjadi?"
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: "Langkah Reproduksi"
+      description: "Langkah-langkah untuk mereproduksi bug ini"
+      placeholder: |
+        1. Buka screen '...'
+        2. Tap tombol '...'
+        3. Scroll ke '...'
+        4. Lihat error
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: "Expected Behavior"
+      description: "Apa yang seharusnya terjadi?"
+      placeholder: "Seharusnya..."
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: "Actual Behavior"
+      description: "Apa yang benar-benar terjadi?"
+      placeholder: "Yang terjadi adalah..."
+    validations:
+      required: true
+  - type: dropdown
+    id: severity
+    attributes:
+      label: "Severity"
+      description: "Seberapa parah dampak bug ini?"
+      options:
+        - "🔴 Critical — App crash / data loss"
+        - "🟠 Major — Fitur utama tidak berfungsi"
+        - "🟡 Minor — Fitur berfungsi tapi ada masalah kecil"
+        - "⚪ Trivial — Cosmetic / typo"
+    validations:
+      required: true
+  - type: input
+    id: related-issue
+    attributes:
+      label: "Related Issue"
+      description: "Nomor issue yang terkait (jika ada)"
+      placeholder: "#12"
+    validations:
+      required: false
+  - type: textarea
+    id: environment
+    attributes:
+      label: "Environment"
+      description: "Detail perangkat dan versi (opsional)"
+      placeholder: |
+        - Device: Pixel 7 / Samsung A54
+        - Android: 14
+        - App version: 0.1.0
+    validations:
+      required: false
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: "Screenshots / Logs"
+      description: "Tambahkan screenshot atau log error (opsional)"
+      placeholder: "Drag & drop gambar atau paste log di sini"
+    validations:
+      required: false

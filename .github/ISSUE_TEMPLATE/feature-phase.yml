@@ -1,0 +1,108 @@
+name: "🚀 Feature Phase"
+description: "Template untuk issue fase pengerjaan fitur baru"
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: "## 📋 Context"
+  - type: input
+    id: phase
+    attributes:
+      label: "Phase"
+      description: "Nomor fase dari total fase yang ada"
+      placeholder: "e.g., 3 of 8"
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: "Priority"
+      description: "Tingkat prioritas fase ini"
+      options:
+        - "🔴 BLOCKING — Must complete before all other phases"
+        - "🟢 P1 — MVP Core"
+        - "🟡 P2 — Important but not MVP"
+        - "🟠 P3 — Nice to have"
+        - "🟣 Final — Polish & Integration"
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: "Dependencies"
+      description: "Issue mana yang harus selesai terlebih dahulu, dan mana yang bisa paralel"
+      placeholder: |
+        Depends on: #X (must be complete)
+        Can run parallel with: #Y, #Z
+    validations:
+      required: false
+  - type: textarea
+    id: references
+    attributes:
+      label: "References"
+      description: "Link ke spec, data model, atau dokumen terkait"
+      placeholder: |
+        - [spec.md](link)
+        - [data-model.md](link)
+    validations:
+      required: false
+  - type: textarea
+    id: goal
+    attributes:
+      label: "🎯 Goal"
+      description: "Deskripsi singkat tujuan fase ini — 1-2 kalimat"
+      placeholder: "Apa yang ingin dicapai setelah fase ini selesai?"
+    validations:
+      required: true
+  - type: textarea
+    id: tasks
+    attributes:
+      label: "✅ Tasks"
+      description: "Daftar task dengan checkbox. Gunakan sub-headings per layer (Data, Domain, Presentation, Tests)"
+      placeholder: |
+        ### Data Layer
+        - [ ] **T001**: Deskripsi task
+        - [ ] **T002**: Deskripsi task
+
+        ### Domain Layer
+        - [ ] **T003**: Deskripsi task
+
+        ### Presentation Layer
+        - [ ] **T004**: Deskripsi task
+
+        ### Tests
+        - [ ] **T005**: Deskripsi task
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: "🧪 Acceptance Criteria"
+      description: "Kriteria keberhasilan dalam format Given-When-Then atau daftar bernomor"
+      placeholder: |
+        1. Given X, When Y, Then Z
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: architecture
+    attributes:
+      label: "📐 Architecture Notes"
+      description: "File structure, dependency flow, atau diagram arsitektur (opsional)"
+      placeholder: |
+        ### File Structure (new files)
+        ```
+        feature/xxx/
+        ├── domain/
+        └── presentation/
+        ```
+    validations:
+      required: false
+  - type: textarea
+    id: watchout
+    attributes:
+      label: "⚠️ Watch Out"
+      description: "Risiko, edge cases, atau hal-hal yang harus diwaspadai"
+      placeholder: "Hal apa saja yang bisa salah dan harus diantisipasi?"
+    validations:
+      required: false
